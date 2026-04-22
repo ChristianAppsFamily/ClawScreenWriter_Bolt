@@ -1,3 +1,6 @@
+/* Import Courier Prime font first */
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -54,9 +57,6 @@ body {
   background-color: rgba(59, 130, 246, 0.3);
   color: inherit;
 }
-
-/* Import Courier Prime font */
-@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
 
 /* ============================================
    PROFESSIONAL SCREENPLAY EDITOR STYLES
