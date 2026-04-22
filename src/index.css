@@ -197,12 +197,13 @@ body {
 /* Individual script page */
 .script-page {
   width: 8.5in;
-  min-height: 11in;
+  height: 11in; /* Fixed height for exact page representation */
   background-color: white;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
   position: relative;
   flex-shrink: 0;
   pointer-events: auto; /* Re-enable pointer events for page content */
+  overflow: hidden; /* Prevent content from spilling out */
 }
 
 .dark .script-page {
@@ -228,10 +229,11 @@ body {
 /* Page content area */
 .page-content {
   padding: 1in 1in 1in 1.5in; /* Top, Right, Bottom, Left */
-  min-height: 11in;
+  height: 11in;
   font-family: 'Courier Prime', 'Courier New', Courier, monospace;
   font-size: 12pt;
   line-height: 16px;
+  overflow: hidden; /* Prevent content overflow */
 }
 
 /* Individual script lines */

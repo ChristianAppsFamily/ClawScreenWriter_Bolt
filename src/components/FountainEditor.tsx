@@ -23,7 +23,7 @@ const CONTENT_HEIGHT_PX = PAGE_HEIGHT_PX - PAGE_MARGIN_TOP_PX - PAGE_MARGIN_BOTT
 
 // Line height for 12pt Courier
 const LINE_HEIGHT_PX = 16;
-const LINES_PER_PAGE = Math.floor(CONTENT_HEIGHT_PX / LINE_HEIGHT_PX);
+const LINES_PER_PAGE = 55; // Hardcoded to exactly 55 lines per page as required
 
 function detectElementType(line: string, prevType?: ElementType): ElementType {
   const trimmed = line.trim();
@@ -159,6 +159,61 @@ function wrapText(text: string, type: ElementType): string[] {
   return lines.length > 0 ? lines : [''];
 }
 
+// Calculate the total lines needed for a dialogue block starting at the given index
+// A dialogue block includes: character name + parenthetical(s) + dialogue line(s)
+function calculateDialogueBlockLines(parsedLines: ParsedLine[], startIndex: number): { lines: number; endIndex: number } {
+  let totalLines = 0;
+  let i = startIndex;
+  
+  // Character line
+  if (i < parsedLines.length && parsedLines[i].type === 'character') {
+    const wrapped = wrapText(parsedLines[i].text, 'character');
+    totalLines += wrapped.length;
+    i++;
+    
+    // Parenthetical(s) and dialogue line(s)
+    while (i < parsedLines.length) {
+      const type = parsedLines[i].type;
+      if (type === 'parenthetical' || type === 'dialogue') {
+        const wrapped = wrapText(parsedLines[i].text, type);
+        totalLines += wrapped.length;
+        i++;
+      } else {
+        break;
+      }
+    }
+  }
+  
+  return { lines: totalLines, endIndex: i - 1 };
+}
+
+// Calculate the total lines needed for a scene heading block
+// Includes the scene heading and any following action lines until next scene/character/transition
+function calculateSceneBlockLines(parsedLines: ParsedLine[], startIndex: number): { lines: number; endIndex: number } {
+  let totalLines = 0;
+  let i = startIndex;
+  
+  if (i < parsedLines.length && parsedLines[i].type === 'scene') {
+    const wrapped = wrapText(parsedLines[i].text, 'scene');
+    totalLines += wrapped.length;
+    i++;
+    
+    // Include following action lines (but stop at next scene, character, or transition)
+    while (i < parsedLines.length) {
+      const type = parsedLines[i].type;
+      if (type === 'action') {
+        const wrapped = wrapText(parsedLines[i].text, type);
+        totalLines += wrapped.length;
+        i++;
+      } else {
+        break;
+      }
+    }
+  }
+  
+  return { lines: totalLines, endIndex: i - 1 };
+}
+
 // Title page component
 function TitlePage({ 
   title, 
@@ -214,7 +269,7 @@ export default function FountainEditor({
     return result;
   }, [value]);
 
-  // Calculate pages based on line count
+  // Calculate pages based on line count with proper page break logic
   const pages = useMemo((): Page[] => {
     const result: Page[] = [];
     
@@ -222,13 +277,65 @@ export default function FountainEditor({
     let currentPageLines: PageLine[] = [];
     let currentLineCount = 0;
     let pageNumber = 2;
+    let i = 0;
 
-    for (let i = 0; i < parsedLines.length; i++) {
+    while (i < parsedLines.length) {
       const line = parsedLines[i];
       const wrappedLines = wrapText(line.text, line.type);
       const lineHeight = wrappedLines.length;
       
-      // Check if we need a new page
+      // DIALOGUE BLOCK KEEPING: If this is a character line, calculate the entire dialogue block
+      if (line.type === 'character') {
+        const blockInfo = calculateDialogueBlockLines(parsedLines, i);
+        
+        // If the entire block won't fit on current page and we're not at the start of a page,
+        // push it to the next page
+        if (currentLineCount > 0 && currentLineCount + blockInfo.lines > LINES_PER_PAGE) {
+          result.push({
+            lines: currentPageLines,
+            pageNumber: pageNumber,
+            isTitlePage: false,
+          });
+          currentPageLines = [];
+          currentLineCount = 0;
+          pageNumber++;
+        }
+        
+        // Add the entire dialogue block to the current page
+        for (let j = i; j <= blockInfo.endIndex; j++) {
+          const blockLine = parsedLines[j];
+          const blockWrapped = wrapText(blockLine.text, blockLine.type);
+          for (let k = 0; k < blockWrapped.length; k++) {
+            currentPageLines.push({
+              text: blockWrapped[k],
+              type: blockLine.type,
+              lineIndex: blockLine.index,
+            });
+          }
+          currentLineCount += blockWrapped.length;
+        }
+        
+        i = blockInfo.endIndex + 1;
+        continue;
+      }
+      
+      // SCENE HEADING WIDOW/ORPHAN PROTECTION: If this is a scene heading,
+      // make sure it doesn't appear as the last line on a page
+      if (line.type === 'scene') {
+        // If scene heading would be the last line on the page, push it to next page
+        if (currentLineCount > 0 && currentLineCount + lineHeight >= LINES_PER_PAGE) {
+          result.push({
+            lines: currentPageLines,
+            pageNumber: pageNumber,
+            isTitlePage: false,
+          });
+          currentPageLines = [];
+          currentLineCount = 0;
+          pageNumber++;
+        }
+      }
+      
+      // Check if we need a new page for regular lines
       if (currentLineCount + lineHeight > LINES_PER_PAGE && currentPageLines.length > 0) {
         result.push({
           lines: currentPageLines,
@@ -249,6 +356,7 @@ export default function FountainEditor({
         });
       }
       currentLineCount += lineHeight;
+      i++;
     }
 
     // Add the last page if it has content

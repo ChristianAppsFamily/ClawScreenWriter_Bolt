@@ -159,9 +159,11 @@ export default function Dashboard() {
     return data;
   };
 
+  const [includePageNumbers, setIncludePageNumbers] = useState(false);
+
   const handleExport = (format: ExportFormat) => {
     if (!activeScript) return;
-    exportScript(format, { script: activeScript, drafts });
+    exportScript(format, { script: activeScript, drafts, includePageNumbers });
   };
 
   const formatDate = (dateString: string) => {
@@ -309,6 +311,8 @@ export default function Dashboard() {
           onClose={() => setShowSettings(false)}
           onExport={handleExport}
           hasActiveScript={!!activeScript}
+          includePageNumbers={includePageNumbers}
+          onTogglePageNumbers={() => setIncludePageNumbers(!includePageNumbers)}
         />
       )}
     </div>

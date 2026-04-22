@@ -1,4 +1,4 @@
-import { X, Sun, Moon, Monitor, LogOut, Mail, CreditCard, HelpCircle, FileText, FileType, File, FileDown } from 'lucide-react';
+import { X, Sun, Moon, Monitor, LogOut, Mail, CreditCard, HelpCircle, FileText, FileType, File, FileDown, Hash } from 'lucide-react';
 import { useTheme } from '../contexts/ThemeContext';
 import { useAuth } from '../contexts/AuthContext';
 import { ExportFormat } from '../lib/export';
@@ -7,6 +7,8 @@ interface SettingsModalProps {
   onClose: () => void;
   onExport?: (format: ExportFormat) => void;
   hasActiveScript?: boolean;
+  includePageNumbers?: boolean;
+  onTogglePageNumbers?: () => void;
 }
 
 const exportOptions: { format: ExportFormat; label: string; description: string; icon: typeof FileDown; color: string }[] = [
@@ -16,7 +18,7 @@ const exportOptions: { format: ExportFormat; label: string; description: string;
   { format: 'txt', label: 'Export as Plain Text', description: 'Simple text file (.txt)', icon: File, color: 'text-gray-500' },
 ];
 
-export default function SettingsModal({ onClose, onExport, hasActiveScript }: SettingsModalProps) {
+export default function SettingsModal({ onClose, onExport, hasActiveScript, includePageNumbers = false, onTogglePageNumbers }: SettingsModalProps) {
   const { theme, setTheme } = useTheme();
   const { signOut, user } = useAuth();
 
@@ -146,6 +148,21 @@ export default function SettingsModal({ onClose, onExport, hasActiveScript }: Se
                 <FileDown className="w-4 h-4 text-gray-400" />
                 Export Script
               </h3>
+              <div className="mb-3">
+                <label className="flex items-center gap-3 px-4 py-3 text-sm text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-700/50 rounded-lg cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                  <Hash className="w-5 h-5 text-gray-400" />
+                  <span className="flex-1">Include page numbers</span>
+                  <input
+                    type="checkbox"
+                    checked={includePageNumbers}
+                    onChange={onTogglePageNumbers}
+                    className="w-4 h-4 text-primary-600 border-gray-300 rounded focus:ring-primary-500"
+                  />
+                </label>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-12">
+                  Page numbers appear top-right, starting from page 2
+                </p>
+              </div>
               <div className="space-y-2">
                 {exportOptions.map((option) => {
                   const Icon = option.icon;
