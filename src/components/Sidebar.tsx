@@ -171,7 +171,15 @@ export default function Sidebar({
                         onMouseLeave={() => setHoveredItem(null)}
                       >
                         <button
-                          onClick={() => toggleScript(script.id)}
+                          onClick={() => {
+                            toggleScript(script.id);
+                            // Navigate to draft if available, otherwise title page
+                            if (scriptDraftsFiltered.length > 0) {
+                              onChangeView({ type: 'draft', scriptId: script.id, draftId: scriptDraftsFiltered[0].id });
+                            } else {
+                              onChangeView({ type: 'title-page', scriptId: script.id });
+                            }
+                          }}
                           className={`w-full flex items-center gap-2 px-2 py-1.5 text-sm rounded-lg transition-colors text-left ${
                             isActive
                               ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300'

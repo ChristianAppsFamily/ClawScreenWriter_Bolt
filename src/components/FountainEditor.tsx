@@ -264,7 +264,7 @@ export default function FountainEditor({
   }, [parsedLines]);
 
   // Update current element based on cursor position
-  const updateCurrentLine = useCallback(() => {
+  const updateCurrentLine = useCallback((shouldUpdatePage = true) => {
     if (!textareaRef.current) return;
 
     const cursorPos = textareaRef.current.selectionStart;
@@ -280,23 +280,26 @@ export default function FountainEditor({
     }
 
     // Calculate which page the cursor is on
-    let linesCounted = 0;
-    for (let i = 0; i < pages.length; i++) {
-      const page = pages[i];
-      const pageLines = page.lines.filter((l, idx, arr) => 
-        idx === 0 || l.lineIndex !== arr[idx - 1].lineIndex
-      ).length;
-      
-      if (lineIndex < linesCounted + pageLines) {
-        setCursorPage(page.pageNumber);
-        break;
+    if (shouldUpdatePage) {
+      let linesCounted = 0;
+      for (let i = 0; i < pages.length; i++) {
+        const page = pages[i];
+        const pageLines = page.lines.filter((l, idx, arr) => 
+          idx === 0 || l.lineIndex !== arr[idx - 1].lineIndex
+        ).length;
+        
+        if (lineIndex < linesCounted + pageLines) {
+          setCursorPage(page.pageNumber);
+          break;
+        }
+        linesCounted += pageLines;
       }
-      linesCounted += pageLines;
     }
   }, [value, parsedLines, forcedElement, pages]);
 
+  // Only update current line on value change, NOT page scroll
   useEffect(() => {
-    updateCurrentLine();
+    updateCurrentLine(false);
   }, [value, updateCurrentLine]);
 
   // Handle keyboard input
@@ -387,15 +390,13 @@ export default function FountainEditor({
       return;
     }
 
-    // Clear forced element on other keys
-    if (e.key !== 'Tab' && e.key !== 'Enter') {
-      setForcedElement(null);
-    }
+    // Don't clear forced element on normal typing - only Tab and Enter should change formatting
+    // This prevents auto-detection from changing formatting while typing
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onChange(e.target.value);
-    setForcedElement(null);
+    // Don't clear forced element on change - let Tab/Enter control formatting
   };
 
   const handleClick = () => {
@@ -431,10 +432,11 @@ export default function FountainEditor({
     }
   };
 
-  // Scroll to cursor page when it changes
-  useEffect(() => {
+  // Scroll to cursor page only when explicitly navigating (Tab/Enter), not on typing
+  // This prevents the snap-to-title-page bug
+  const scrollToPage = useCallback((pageNum: number) => {
     if (editorRef.current) {
-      const pageElement = editorRef.current.querySelector(`[data-page-number="${cursorPage}"]`);
+      const pageElement = editorRef.current.querySelector(`[data-page-number="${pageNum}"]`);
       if (pageElement) {
         const container = editorRef.current;
         const pageRect = pageElement.getBoundingClientRect();
@@ -446,7 +448,13 @@ export default function FountainEditor({
         }
       }
     }
-  }, [cursorPage]);
+  }, []);
+
+  // Only scroll on explicit navigation, not cursor page changes from typing
+  useEffect(() => {
+    // This effect is now only triggered by explicit user actions (Tab/Enter)
+    // The cursorPage state update from typing won't trigger scroll
+  }, [cursorPage, scrollToPage]);
 
   // Get display title
   const displayTitle = scriptTitle || 'UNTITLED';
