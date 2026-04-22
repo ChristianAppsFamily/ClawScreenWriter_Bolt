@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Trash2, Pencil, Check, X } from 'lucide-react';
-import { ScriptDraft } from '../lib/supabase';
+import { ScriptDraft, Script } from '../lib/supabase';
 import FountainEditor from './FountainEditor';
 
 interface DraftEditorProps {
   draft: ScriptDraft;
+  script: Script;
   onUpdate: (updates: Partial<Pick<ScriptDraft, 'title' | 'content'>>) => void;
   onDelete: () => void;
 }
 
-export default function DraftEditor({ draft, onUpdate, onDelete }: DraftEditorProps) {
+export default function DraftEditor({ draft, script, onUpdate, onDelete }: DraftEditorProps) {
   const [title, setTitle] = useState(draft.title);
   const [content, setContent] = useState(draft.content || '');
   const [isRenaming, setIsRenaming] = useState(false);
@@ -130,6 +131,9 @@ export default function DraftEditor({ draft, onUpdate, onDelete }: DraftEditorPr
         <FountainEditor
           value={content}
           onChange={handleContentChange}
+          scriptTitle={script.title}
+          authorName={script.author_name || ''}
+          writtenBy={script.written_by || 'Written by'}
         />
       </div>
     </div>

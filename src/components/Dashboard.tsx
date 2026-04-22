@@ -7,7 +7,7 @@ import TitlePageForm from './TitlePageForm';
 import StepEditor from './StepEditor';
 import DraftEditor from './DraftEditor';
 import { useScripts, useStorySteps, useScriptDrafts } from '../hooks/useScripts';
-import { Script, StepType } from '../lib/supabase';
+import type { StepType } from '../lib/supabase';
 import { ExportFormat, exportScript } from '../lib/export';
 import { supabase } from '../lib/supabase';
 
@@ -187,11 +187,12 @@ export default function Dashboard() {
 
     if (activeView.type === 'draft') {
       const draft = drafts.find((d) => d.id === activeView.draftId);
-      if (draft) {
+      if (draft && activeScript) {
         return (
           <DraftEditor
             key={draft.id}
             draft={draft}
+            script={activeScript}
             onUpdate={(updates) => updateDraft(draft.id, updates)}
             onDelete={() => handleDeleteDraft(draft.id)}
           />

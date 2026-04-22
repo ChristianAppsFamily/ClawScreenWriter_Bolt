@@ -5,12 +5,25 @@ type ElementType = 'scene' | 'action' | 'character' | 'dialogue' | 'parenthetica
 interface FountainEditorProps {
   value: string;
   onChange: (value: string) => void;
+  scriptTitle?: string;
+  authorName?: string;
+  writtenBy?: string;
   placeholder?: string;
 }
 
 const SCENE_PREFIXES = ['INT.', 'EXT.', 'INT./EXT.', 'EXT./INT.', 'I/E.', 'E/I.'];
 const TRANSITION_SUFFIXES = ['TO:', 'IN:', 'OUT:'];
-const ELEMENT_CYCLE: ElementType[] = ['action', 'scene', 'character', 'dialogue', 'parenthetical', 'transition'];
+const ELEMENT_CYCLE: ElementType[] = ['scene', 'action', 'character', 'dialogue', 'parenthetical', 'transition'];
+
+// Standard screenplay page dimensions
+const PAGE_HEIGHT_PX = 1056; // 11 inches at 96 DPI
+const PAGE_MARGIN_TOP_PX = 96; // 1 inch
+const PAGE_MARGIN_BOTTOM_PX = 96; // 1 inch
+const CONTENT_HEIGHT_PX = PAGE_HEIGHT_PX - PAGE_MARGIN_TOP_PX - PAGE_MARGIN_BOTTOM_PX;
+
+// Line height for 12pt Courier
+const LINE_HEIGHT_PX = 16;
+const LINES_PER_PAGE = Math.floor(CONTENT_HEIGHT_PX / LINE_HEIGHT_PX);
 
 function detectElementType(line: string, prevType?: ElementType): ElementType {
   const trimmed = line.trim();
@@ -79,19 +92,115 @@ function getElementMargins(type: ElementType): { left: number; right: number } {
   }
 }
 
+function getNextElementType(currentType: ElementType): ElementType {
+  switch (currentType) {
+    case 'scene':
+      return 'action';
+    case 'action':
+      return 'action';
+    case 'character':
+      return 'dialogue';
+    case 'dialogue':
+      return 'action';
+    case 'parenthetical':
+      return 'dialogue';
+    case 'transition':
+      return 'scene';
+    default:
+      return 'action';
+  }
+}
+
 interface ParsedLine {
   text: string;
   type: ElementType;
   index: number;
 }
 
-export default function FountainEditor({ value, onChange, placeholder }: FountainEditorProps) {
+interface PageLine {
+  text: string;
+  type: ElementType;
+  lineIndex: number;
+}
+
+interface Page {
+  lines: PageLine[];
+  pageNumber: number;
+  isTitlePage: boolean;
+}
+
+// Wrap text into lines based on element type margins
+function wrapText(text: string, type: ElementType): string[] {
+  const trimmed = text.trim();
+  if (!trimmed) return [''];
+  
+  const margins = getElementMargins(type);
+  const availableWidth = 576 - margins.left - margins.right; // 6 inches content width
+  const charWidth = 7.2;
+  const maxChars = Math.floor(availableWidth / charWidth);
+  
+  const words = trimmed.split(' ');
+  const lines: string[] = [];
+  let currentLine = '';
+  
+  for (const word of words) {
+    if ((currentLine + ' ' + word).length <= maxChars || !currentLine) {
+      currentLine = currentLine ? currentLine + ' ' + word : word;
+    } else {
+      lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+  
+  if (currentLine) {
+    lines.push(currentLine);
+  }
+  
+  return lines.length > 0 ? lines : [''];
+}
+
+// Title page component
+function TitlePage({ 
+  title, 
+  writtenBy, 
+  authorName 
+}: { 
+  title: string; 
+  writtenBy?: string; 
+  authorName?: string;
+}) {
+  return (
+    <div className="script-page title-page">
+      <div className="title-page-content">
+        <div className="title-section">
+          <h1 className="script-title">{title || 'UNTITLED'}</h1>
+        </div>
+        <div className="credit-section">
+          {writtenBy && <p className="written-by">{writtenBy}</p>}
+          {authorName && <p className="author-name">{authorName}</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export default function FountainEditor({ 
+  value, 
+  onChange, 
+  scriptTitle = '',
+  authorName = '',
+  writtenBy = 'Written by',
+  placeholder 
+}: FountainEditorProps) {
+  const editorRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const previewRef = useRef<HTMLDivElement>(null);
   const [currentElement, setCurrentElement] = useState<ElementType>('action');
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [forcedElement, setForcedElement] = useState<ElementType | null>(null);
+  const [cursorPage, setCursorPage] = useState(2);
+  const [isFocused, setIsFocused] = useState(false);
 
+  // Parse all lines with their types
   const parsedLines = useMemo((): ParsedLine[] => {
     const lines = value.split('\n');
     const result: ParsedLine[] = [];
@@ -106,6 +215,56 @@ export default function FountainEditor({ value, onChange, placeholder }: Fountai
     return result;
   }, [value]);
 
+  // Calculate pages based on line count
+  const pages = useMemo((): Page[] => {
+    const result: Page[] = [];
+    
+    // Script content pages
+    let currentPageLines: PageLine[] = [];
+    let currentLineCount = 0;
+    let pageNumber = 2;
+
+    for (let i = 0; i < parsedLines.length; i++) {
+      const line = parsedLines[i];
+      const wrappedLines = wrapText(line.text, line.type);
+      const lineHeight = wrappedLines.length;
+      
+      // Check if we need a new page
+      if (currentLineCount + lineHeight > LINES_PER_PAGE && currentPageLines.length > 0) {
+        result.push({
+          lines: currentPageLines,
+          pageNumber: pageNumber,
+          isTitlePage: false,
+        });
+        currentPageLines = [];
+        currentLineCount = 0;
+        pageNumber++;
+      }
+
+      // Add the wrapped lines
+      for (let j = 0; j < wrappedLines.length; j++) {
+        currentPageLines.push({
+          text: wrappedLines[j],
+          type: line.type,
+          lineIndex: line.index,
+        });
+      }
+      currentLineCount += lineHeight;
+    }
+
+    // Add the last page if it has content
+    if (currentPageLines.length > 0) {
+      result.push({
+        lines: currentPageLines,
+        pageNumber: pageNumber,
+        isTitlePage: false,
+      });
+    }
+
+    return result;
+  }, [parsedLines]);
+
+  // Update current element based on cursor position
   const updateCurrentLine = useCallback(() => {
     if (!textareaRef.current) return;
 
@@ -120,18 +279,28 @@ export default function FountainEditor({ value, onChange, placeholder }: Fountai
     } else if (parsedLines[lineIndex]) {
       setCurrentElement(parsedLines[lineIndex].type);
     }
-  }, [value, parsedLines, forcedElement]);
+
+    // Calculate which page the cursor is on
+    let linesCounted = 0;
+    for (let i = 0; i < pages.length; i++) {
+      const page = pages[i];
+      const pageLines = page.lines.filter((l, idx, arr) => 
+        idx === 0 || l.lineIndex !== arr[idx - 1].lineIndex
+      ).length;
+      
+      if (lineIndex < linesCounted + pageLines) {
+        setCursorPage(page.pageNumber);
+        break;
+      }
+      linesCounted += pageLines;
+    }
+  }, [value, parsedLines, forcedElement, pages]);
 
   useEffect(() => {
     updateCurrentLine();
   }, [value, updateCurrentLine]);
 
-  const syncScroll = useCallback(() => {
-    if (textareaRef.current && previewRef.current) {
-      previewRef.current.scrollTop = textareaRef.current.scrollTop;
-    }
-  }, []);
-
+  // Handle keyboard input
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
@@ -166,6 +335,7 @@ export default function FountainEditor({ value, onChange, placeholder }: Fountai
         newLineContent = newLineContent.toUpperCase();
       }
 
+      // Calculate spaces for indentation (10px per space)
       const paddingChars = Math.floor(margins.left / 10);
       const padding = ' '.repeat(paddingChars);
       const paddedContent = padding + newLineContent.trimStart();
@@ -176,14 +346,15 @@ export default function FountainEditor({ value, onChange, placeholder }: Fountai
 
       onChange(newValue);
 
-      setTimeout(() => {
+      // Restore cursor position without jumping
+      requestAnimationFrame(() => {
         if (textarea) {
           const newPos = currentLineStart + paddedContent.length;
           textarea.selectionStart = newPos;
           textarea.selectionEnd = newPos;
           textarea.focus();
         }
-      }, 0);
+      });
 
       return;
     }
@@ -192,30 +363,10 @@ export default function FountainEditor({ value, onChange, placeholder }: Fountai
       e.preventDefault();
 
       const activeType = forcedElement || (parsedLines[lineIndex]?.type || 'action');
-      let nextType: ElementType = 'action';
-
-      switch (activeType) {
-        case 'scene':
-          nextType = 'action';
-          break;
-        case 'action':
-          nextType = 'action';
-          break;
-        case 'character':
-          nextType = 'dialogue';
-          break;
-        case 'dialogue':
-          nextType = 'action';
-          break;
-        case 'parenthetical':
-          nextType = 'dialogue';
-          break;
-        case 'transition':
-          nextType = 'scene';
-          break;
-      }
+      const nextType = getNextElementType(activeType);
 
       setForcedElement(nextType);
+      setCurrentElement(nextType);
 
       const margins = getElementMargins(nextType);
       const paddingChars = Math.floor(margins.left / 10);
@@ -224,18 +375,20 @@ export default function FountainEditor({ value, onChange, placeholder }: Fountai
       const newValue = value.substring(0, cursorPos) + '\n' + padding + textAfterCursor;
       onChange(newValue);
 
-      setTimeout(() => {
+      // Restore cursor position without jumping
+      requestAnimationFrame(() => {
         if (textarea) {
           const newPos = cursorPos + 1 + padding.length;
           textarea.selectionStart = newPos;
           textarea.selectionEnd = newPos;
           textarea.focus();
         }
-      }, 0);
+      });
 
       return;
     }
 
+    // Clear forced element on other keys
     if (e.key !== 'Tab' && e.key !== 'Enter') {
       setForcedElement(null);
     }
@@ -246,46 +399,92 @@ export default function FountainEditor({ value, onChange, placeholder }: Fountai
     setForcedElement(null);
   };
 
-  const renderPreviewLine = (line: ParsedLine, isCurrentLine: boolean) => {
-    const appliedType = isCurrentLine && forcedElement ? forcedElement : line.type;
-    const margins = getElementMargins(appliedType);
+  const handleClick = () => {
+    updateCurrentLine();
+  };
 
-    let className = 'whitespace-pre-wrap break-words ';
-    let style: React.CSSProperties = {
-      paddingLeft: margins.left,
-      paddingRight: margins.right,
-      minHeight: '1.5em',
-    };
+  const handleSelect = () => {
+    updateCurrentLine();
+  };
 
-    switch (appliedType) {
-      case 'scene':
-        className += 'font-bold uppercase';
-        break;
-      case 'character':
-        className += 'uppercase';
-        break;
-      case 'transition':
-        className += 'uppercase text-right';
-        style.textAlign = 'right';
-        break;
-      case 'parenthetical':
-        className += 'italic';
-        break;
+  const handleFocus = () => {
+    setIsFocused(true);
+  };
+
+  const handleBlur = () => {
+    setIsFocused(false);
+  };
+
+  const handleLineClick = (lineIndex: number) => {
+    // Calculate cursor position for the clicked line
+    const lines = value.split('\n');
+    let charPos = 0;
+    for (let i = 0; i < lineIndex && i < lines.length; i++) {
+      charPos += lines[i].length + 1; // +1 for newline
     }
+    
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+      textareaRef.current.selectionStart = charPos;
+      textareaRef.current.selectionEnd = charPos;
+      setCurrentLineIndex(lineIndex);
+      setIsFocused(true);
+    }
+  };
+
+  // Scroll to cursor page when it changes
+  useEffect(() => {
+    if (editorRef.current) {
+      const pageElement = editorRef.current.querySelector(`[data-page-number="${cursorPage}"]`);
+      if (pageElement) {
+        const container = editorRef.current;
+        const pageRect = pageElement.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        
+        // Only scroll if page is not fully visible
+        if (pageRect.bottom > containerRect.bottom || pageRect.top < containerRect.top) {
+          pageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
+      }
+    }
+  }, [cursorPage]);
+
+  // Get display title
+  const displayTitle = scriptTitle || 'UNTITLED';
+
+  // Render a script line
+  const renderLine = (line: PageLine, pageNumber: number) => {
+    const margins = getElementMargins(line.type);
+    const isUppercase = line.type === 'scene' || line.type === 'character' || line.type === 'transition';
+    const isRightAligned = line.type === 'transition';
+    const isItalic = line.type === 'parenthetical';
+    const isBold = line.type === 'scene';
+    const hasCursor = line.lineIndex === currentLineIndex && isFocused;
 
     return (
-      <div key={line.index} className={className} style={style}>
-        {line.text || '\u00A0'}
+      <div
+        key={`${pageNumber}-${line.lineIndex}`}
+        className={`script-line ${line.type} ${isUppercase ? 'uppercase' : ''} ${isRightAligned ? 'text-right' : ''} ${isItalic ? 'italic' : ''} ${isBold ? 'font-bold' : ''} ${hasCursor ? 'cursor-line' : ''}`}
+        style={{
+          paddingLeft: margins.left,
+          paddingRight: margins.right,
+        }}
+        data-line-index={line.lineIndex}
+        onClick={() => handleLineClick(line.lineIndex)}
+      >
+        <span className="line-text">{line.text || '\u00A0'}</span>
+        {hasCursor && <span className="cursor-indicator">|</span>}
       </div>
     );
   };
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex-shrink-0 px-6 py-3 border-b border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
-        <div className="flex items-center gap-4 text-sm">
-          <span className="text-gray-500 dark:text-gray-400">Current:</span>
-          <div className="flex gap-1">
+    <div className="fountain-editor-container">
+      {/* Toolbar */}
+      <div className="editor-toolbar">
+        <div className="toolbar-content">
+          <span className="toolbar-label">Current:</span>
+          <div className="element-buttons">
             {ELEMENT_CYCLE.map((type) => (
               <button
                 key={type}
@@ -294,49 +493,70 @@ export default function FountainEditor({ value, onChange, placeholder }: Fountai
                   setCurrentElement(type);
                   textareaRef.current?.focus();
                 }}
-                className={`px-2 py-1 rounded text-xs font-medium transition-colors ${
-                  currentElement === type
-                    ? 'bg-primary-500 text-white'
-                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                }`}
+                className={`element-button ${currentElement === type ? 'active' : ''}`}
               >
                 {getElementLabel(type)}
               </button>
             ))}
           </div>
-          <span className="text-gray-400 dark:text-gray-500 ml-4">
+          <span className="toolbar-hint">
             Tab to cycle | Enter for next
           </span>
         </div>
       </div>
 
-      <div className="flex-1 overflow-hidden bg-gray-100 dark:bg-gray-900 flex justify-center">
-        <div className="w-full max-w-[900px] h-full py-8 px-4">
-          <div className="bg-white dark:bg-gray-800 shadow-xl h-full rounded overflow-hidden relative">
-            <div
-              ref={previewRef}
-              className="absolute inset-0 overflow-auto pointer-events-none px-16 py-12"
-              style={{ fontFamily: 'Courier Prime, Courier New, monospace', fontSize: '13px', lineHeight: '1.6' }}
+      {/* Editor Area with synchronized textarea overlay */}
+      <div className="editor-workspace" ref={editorRef}>
+        {/* Hidden textarea for input handling - positioned over the content */}
+        <textarea
+          ref={textareaRef}
+          value={value}
+          onChange={handleChange}
+          onKeyDown={handleKeyDown}
+          onClick={handleClick}
+          onSelect={handleSelect}
+          onFocus={handleFocus}
+          onBlur={handleBlur}
+          className="editor-textarea"
+          placeholder={placeholder}
+          spellCheck={false}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="off"
+        />
+
+        {/* Visible paginated pages - rendered behind textarea */}
+        <div className="pages-container">
+          {/* Title Page */}
+          <TitlePage 
+            title={displayTitle} 
+            writtenBy={writtenBy} 
+            authorName={authorName}
+          />
+
+          {/* Script Pages */}
+          {pages.map((page) => (
+            <div 
+              key={page.pageNumber} 
+              className={`script-page ${page.pageNumber === cursorPage && isFocused ? 'active-page' : ''}`}
+              data-page-number={page.pageNumber}
             >
-              <div className="text-gray-900 dark:text-gray-100">
-                {parsedLines.map((line) => renderPreviewLine(line, line.index === currentLineIndex))}
+              <div className="page-number">{page.pageNumber - 1}</div>
+              <div className="page-content">
+                {page.lines.map((line) => renderLine(line, page.pageNumber))}
               </div>
             </div>
+          ))}
 
-            <textarea
-              ref={textareaRef}
-              value={value}
-              onChange={handleChange}
-              onKeyDown={handleKeyDown}
-              onScroll={syncScroll}
-              onClick={updateCurrentLine}
-              onSelect={updateCurrentLine}
-              className="absolute inset-0 w-full h-full bg-transparent text-transparent caret-primary-500 dark:caret-primary-400 resize-none outline-none px-16 py-12 selection:bg-primary-200 dark:selection:bg-primary-800"
-              style={{ fontFamily: 'Courier Prime, Courier New, monospace', fontSize: '13px', lineHeight: '1.6' }}
-              placeholder={placeholder}
-              spellCheck={false}
-            />
-          </div>
+          {/* Empty state for new scripts */}
+          {pages.length === 0 && (
+            <div className="script-page empty-script-page">
+              <div className="page-number">1</div>
+              <div className="page-content">
+                <div className="script-line action">FADE IN:</div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

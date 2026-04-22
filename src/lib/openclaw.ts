@@ -7,7 +7,8 @@ export interface OpenClawContext {
   drafts: ScriptDraft[];
 }
 
-export { AIWritingRequest, AIWritingResponse, WRITING_PROMPTS };
+export type { AIWritingRequest, AIWritingResponse };
+export { WRITING_PROMPTS };
 
 export function buildContextFromScript(
   script: Script,

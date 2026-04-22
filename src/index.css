@@ -21,21 +21,25 @@ body {
 }
 
 ::-webkit-scrollbar {
-  width: 8px;
-  height: 8px;
+  width: 10px;
+  height: 10px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #525659;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 4px;
+  background: #8b8d8f;
+  border-radius: 5px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+  background: #a0a2a4;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #374151;
 }
 
 .dark ::-webkit-scrollbar-thumb {
@@ -47,10 +51,425 @@ body {
 }
 
 ::selection {
+  background-color: rgba(59, 130, 246, 0.3);
+  color: inherit;
+}
+
+/* Import Courier Prime font */
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:wght@400;700&display=swap');
+
+/* ============================================
+   PROFESSIONAL SCREENPLAY EDITOR STYLES
+   ============================================ */
+
+/* Main editor container */
+.fountain-editor-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background-color: #525659; /* Gray background like professional editors */
+}
+
+/* Toolbar styles */
+.editor-toolbar {
+  flex-shrink: 0;
+  background-color: #f3f4f6;
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0.75rem 1.5rem;
+}
+
+.dark .editor-toolbar {
+  background-color: #1f2937;
+  border-bottom-color: #374151;
+}
+
+.toolbar-content {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.toolbar-label {
+  font-size: 0.875rem;
+  color: #6b7280;
+  white-space: nowrap;
+}
+
+.dark .toolbar-label {
+  color: #9ca3af;
+}
+
+.element-buttons {
+  display: flex;
+  gap: 0.25rem;
+  flex-wrap: wrap;
+}
+
+.element-button {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: 0.375rem;
+  background-color: #e5e7eb;
+  color: #4b5563;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.dark .element-button {
+  background-color: #374151;
+  color: #d1d5db;
+}
+
+.element-button:hover {
+  background-color: #d1d5db;
+}
+
+.dark .element-button:hover {
+  background-color: #4b5563;
+}
+
+.element-button.active {
   background-color: #3b82f6;
   color: white;
 }
 
+.toolbar-hint {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-left: auto;
+}
+
+.dark .toolbar-hint {
+  color: #6b7280;
+}
+
+/* Editor workspace */
+.editor-workspace {
+  flex: 1;
+  overflow: auto;
+  position: relative;
+}
+
+/* Editor textarea - overlays the content for input handling */
+.editor-textarea {
+  position: absolute;
+  top: 2rem; /* Account for pages container padding */
+  left: 50%;
+  transform: translateX(-50%);
+  width: 8.5in;
+  min-height: calc(100% - 4rem);
+  opacity: 0.01; /* Nearly invisible but still interactive */
+  cursor: text;
+  z-index: 100;
+  resize: none;
+  border: none;
+  outline: none;
+  padding: 1in 1in 1in 1.5in;
+  margin: 0;
+  font-family: 'Courier Prime', 'Courier New', Courier, monospace;
+  font-size: 12pt;
+  line-height: 16px;
+  white-space: pre-wrap;
+  overflow: hidden;
+  color: transparent;
+  background: transparent;
+  caret-color: #3b82f6;
+}
+
+.editor-textarea::selection {
+  background-color: rgba(59, 130, 246, 0.3);
+  color: transparent;
+}
+
+/* Pages container */
+.pages-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 2rem 1rem;
+  gap: 2rem;
+  min-height: 100%;
+  pointer-events: none; /* Let clicks pass through to textarea */
+}
+
+/* Individual script page */
+.script-page {
+  width: 8.5in;
+  min-height: 11in;
+  background-color: white;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  position: relative;
+  flex-shrink: 0;
+  pointer-events: auto; /* Re-enable pointer events for page content */
+}
+
+.dark .script-page {
+  background-color: #1f2937;
+  color: #f3f4f6;
+}
+
+/* Page number */
+.page-number {
+  position: absolute;
+  top: 0.5in;
+  right: 1in;
+  font-family: 'Courier Prime', 'Courier New', Courier, monospace;
+  font-size: 12pt;
+  color: #000;
+  pointer-events: none;
+}
+
+.dark .page-number {
+  color: #f3f4f6;
+}
+
+/* Page content area */
+.page-content {
+  padding: 1in 1in 1in 1.5in; /* Top, Right, Bottom, Left */
+  min-height: 11in;
+  font-family: 'Courier Prime', 'Courier New', Courier, monospace;
+  font-size: 12pt;
+  line-height: 16px;
+}
+
+/* Individual script lines */
+.script-line {
+  min-height: 16px;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  color: #000;
+  position: relative;
+  cursor: text;
+  pointer-events: auto;
+}
+
+.dark .script-line {
+  color: #f3f4f6;
+}
+
+.script-line:hover {
+  background-color: rgba(59, 130, 246, 0.05);
+}
+
+.dark .script-line:hover {
+  background-color: rgba(59, 130, 246, 0.1);
+}
+
+/* Cursor indicator */
+.cursor-line {
+  background-color: rgba(59, 130, 246, 0.08);
+}
+
+.dark .cursor-line {
+  background-color: rgba(59, 130, 246, 0.15);
+}
+
+.cursor-indicator {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background-color: #3b82f6;
+  animation: blink 1s step-end infinite;
+  margin-left: 1px;
+  vertical-align: text-bottom;
+}
+
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Element type styles */
+.script-line.scene {
+  font-weight: bold;
+  text-transform: uppercase;
+  margin-top: 24px;
+  margin-bottom: 12px;
+}
+
+.script-line.action {
+  margin-bottom: 0;
+}
+
+.script-line.character {
+  text-transform: uppercase;
+  margin-top: 12px;
+  padding-left: 2in !important;
+}
+
+.script-line.dialogue {
+  padding-left: 1in !important;
+  padding-right: 1.5in !important;
+  margin-bottom: 0;
+}
+
+.script-line.parenthetical {
+  font-style: italic;
+  padding-left: 1.5in !important;
+  padding-right: 2in !important;
+}
+
+.script-line.transition {
+  text-transform: uppercase;
+  text-align: right;
+  margin-top: 12px;
+  margin-bottom: 12px;
+}
+
+/* Title page styles */
+.title-page {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  pointer-events: auto;
+}
+
+.title-page-content {
+  text-align: center;
+  padding: 2in 1in;
+}
+
+.title-section {
+  margin-bottom: 3in;
+}
+
+.script-title {
+  font-family: 'Courier Prime', 'Courier New', Courier, monospace;
+  font-size: 24pt;
+  font-weight: bold;
+  text-transform: uppercase;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.dark .script-title {
+  color: #f3f4f6;
+}
+
+.credit-section {
+  font-family: 'Courier Prime', 'Courier New', Courier, monospace;
+  font-size: 12pt;
+}
+
+.written-by {
+  margin: 0 0 0.5rem 0;
+}
+
+.dark .written-by {
+  color: #f3f4f6;
+}
+
+.author-name {
+  margin: 0;
+}
+
+.dark .author-name {
+  color: #f3f4f6;
+}
+
+/* Empty script page hint */
+.empty-script-page {
+  cursor: text;
+  pointer-events: auto;
+}
+
+.empty-script-page .script-line {
+  color: #9ca3af;
+}
+
+/* Active page highlight */
+.active-page {
+  box-shadow: 0 0 0 2px #3b82f6, 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Responsive adjustments */
+@media (max-width: 900px) {
+  .script-page,
+  .editor-textarea {
+    width: 100%;
+    max-width: 8.5in;
+    min-height: auto;
+  }
+  
+  .page-content,
+  .editor-textarea {
+    min-height: auto;
+    padding: 1rem;
+  }
+  
+  .page-number {
+    top: 0.5rem;
+    right: 1rem;
+  }
+  
+  .script-line.character {
+    padding-left: 1.5in !important;
+  }
+  
+  .script-line.dialogue {
+    padding-left: 0.75in !important;
+    padding-right: 0.75in !important;
+  }
+  
+  .script-line.parenthetical {
+    padding-left: 1in !important;
+    padding-right: 1in !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  .editor-toolbar,
+  .editor-textarea {
+    display: none !important;
+  }
+  
+  .pages-container {
+    padding: 0;
+    gap: 0;
+    pointer-events: auto;
+  }
+  
+  .script-page {
+    box-shadow: none;
+    page-break-after: always;
+    width: 100%;
+  }
+  
+  .script-page:last-child {
+    page-break-after: auto;
+  }
+  
+  .cursor-indicator {
+    display: none !important;
+  }
+  
+  .cursor-line {
+    background-color: transparent !important;
+  }
+}
+
+/* Utility classes for text styling */
+.uppercase {
+  text-transform: uppercase;
+}
+
+.text-right {
+  text-align: right;
+}
+
+.italic {
+  font-style: italic;
+}
+
+.font-bold {
+  font-weight: bold;
+}
+
+/* Legacy fountain editor styles (for compatibility) */
 .fountain-editor {
   font-family: 'Courier Prime', 'Courier New', Courier, monospace;
   font-size: 12pt;
