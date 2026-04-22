@@ -1,4 +1,5 @@
 import { Script, StoryStep, ScriptDraft } from './supabase';
+import { generateWithOpenClaw, AIWritingRequest, AIWritingResponse, WRITING_PROMPTS } from './api';
 
 export interface OpenClawContext {
   script: Script;
@@ -6,18 +7,7 @@ export interface OpenClawContext {
   drafts: ScriptDraft[];
 }
 
-export interface AIWritingRequest {
-  context: OpenClawContext;
-  prompt: string;
-  targetDraftId?: string;
-  format: 'fountain' | 'prose';
-}
-
-export interface AIWritingResponse {
-  content: string;
-  format: 'fountain' | 'prose';
-  suggestions?: string[];
-}
+export { AIWritingRequest, AIWritingResponse, WRITING_PROMPTS };
 
 export function buildContextFromScript(
   script: Script,
@@ -88,45 +78,5 @@ export function formatForFountain(text: string): string {
   return formatted;
 }
 
-export async function generateWithOpenClaw(
-  request: AIWritingRequest,
-  apiKey: string
-): Promise<AIWritingResponse> {
-  const contextText = buildPromptContext(request.context);
-
-  const systemPrompt = `You are OpenClaw, an AI screenwriting assistant.
-You help writers develop their scripts by understanding their story development work and generating screenplay content.
-Always output in Fountain format when requested.
-
-Current script context:
-${contextText}`;
-
-  const response = await fetch('/functions/v1/openclaw', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      system: systemPrompt,
-      prompt: request.prompt,
-      format: request.format,
-    }),
-  });
-
-  if (!response.ok) {
-    throw new Error(`OpenClaw API error: ${response.statusText}`);
-  }
-
-  return response.json();
-}
-
-export const WRITING_PROMPTS = {
-  expandScene: 'Expand this scene with more action and dialogue',
-  addDialogue: 'Add dialogue to this scene',
-  describeAction: 'Describe the action in this scene in more detail',
-  generateFromSteps: 'Using the development steps above, generate screenplay pages',
-  continueWriting: 'Continue writing from where the draft left off',
-  improveDialogue: 'Improve the dialogue to sound more natural',
-  addSubtext: 'Add subtext and tension to this scene',
-};
+// Re-export generateWithOpenClaw from api.ts for backward compatibility
+export { generateWithOpenClaw };
