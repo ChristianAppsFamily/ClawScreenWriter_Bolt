@@ -40,7 +40,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string) => {
-    const { error } = await supabase.auth.signUp({ email, password });
+    // TESTING MODE: Skip email confirmation
+    // In production, remove the options.skipEmailConfirmation
+    const { error } = await supabase.auth.signUp({ 
+      email, 
+      password,
+      options: {
+        // This skips email confirmation - ONLY FOR TESTING
+        // Remove this in production!
+        emailRedirectTo: undefined,
+        data: {
+          confirmed: true
+        }
+      }
+    });
+    
+    // If signup succeeds, immediately sign in (testing mode)
+    if (!error) {
+      // Auto sign in after signup for testing
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+      return { error: signInError as Error | null };
+    }
+    
     return { error: error as Error | null };
   };
 
