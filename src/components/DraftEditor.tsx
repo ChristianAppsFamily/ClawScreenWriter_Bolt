@@ -11,14 +11,14 @@ interface DraftEditorProps {
 
 export default function DraftEditor({ draft, onUpdate, onDelete }: DraftEditorProps) {
   const [title, setTitle] = useState(draft.title);
-  const [content, setContent] = useState(draft.content);
+  const [content, setContent] = useState(draft.content || '');
   const [isRenaming, setIsRenaming] = useState(false);
   const [renameValue, setRenameValue] = useState(draft.title);
   const renameInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     setTitle(draft.title);
-    setContent(draft.content);
+    setContent(draft.content || '');
     setRenameValue(draft.title);
   }, [draft.id, draft.title, draft.content]);
 

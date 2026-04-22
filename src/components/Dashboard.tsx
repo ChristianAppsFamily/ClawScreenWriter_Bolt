@@ -124,11 +124,15 @@ export default function Dashboard() {
   };
 
   const createDraftForScript = async (scriptId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from('script_drafts')
-      .insert({ script_id: scriptId, title: 'Draft 1', order_index: 0 })
+      .insert({ script_id: scriptId, title: 'Draft 1', order_index: 0, content: '' })
       .select()
       .single();
+    if (error) {
+      console.error('Error creating draft:', error);
+      return null;
+    }
     return data;
   };
 
