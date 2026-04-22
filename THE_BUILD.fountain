@@ -1,0 +1,235 @@
+Title: THE BUILD
+Credit: Written by
+Author: The Developer
+Draft date: 2025-04-22
+Contact:
+    clawscreenwriter.app
+
+===
+
+FADE IN:
+
+EXT. COFFEE SHOP - DAY
+
+Rain streaks the windows of a hipster coffee shop in Seattle. Inside, JORDAN (28, intense, laptop stickers covering every inch) hunches over a MacBook Pro, surrounded by empty espresso cups.
+
+Jordan's fingers fly across the keyboard. Lines of code scroll past on the screen.
+
+                    JORDAN
+          (muttering)
+      Final Draft costs how much? Three 
+      hundred dollars? For software that 
+      looks like it's from 2003?
+
+Jordan slams the laptop shut, looks around the coffee shop.
+
+                    JORDAN (CONT'D)
+          (to no one in particular)
+      I can build something better. In a 
+      weekend.
+
+The BARISTA (22, tattooed, unimpressed) looks over.
+
+                    BARISTA
+      You say that every week, Jordan.
+
+                    JORDAN
+      This time I mean it. A screenplay 
+      editor that actually looks good. 
+      Professional. Like the movies.
+
+Jordan opens the laptop again. The screen glows blue against their face.
+
+                    JORDAN (CONT'D)
+      I'm calling it... ClawScreenwriter.
+
+                    BARISTA
+      Because?
+
+                    JORDAN
+      Because I'm clawing my way out of 
+      subscription hell.
+
+Jordan cracks their knuckles. This is happening.
+
+FADE TO:
+
+INT. JORDAN'S APARTMENT - NIGHT
+
+The apartment is a typical developer cave: monitors everywhere, RGB lighting, empty energy drink cans stacked like a modern art installation.
+
+Jordan sits at a standing desk, three monitors displaying code, design mockups, and a reference site: youmescript.com.
+
+Jordan studies the reference intently.
+
+                    JORDAN
+      Okay, so they use real pages. White 
+      rectangles on gray background. US 
+      Letter size. One and a half inch 
+      left margin...
+
+Jordan types furiously. CSS code streams across one monitor.
+
+                    JORDAN (CONT'D)
+      Courier Prime font. Monospace. Twelve 
+      point. Line height of sixteen pixels...
+
+The code compiles. Jordan refreshes a browser window. A beautiful page layout appears - white rectangle on gray background.
+
+                    JORDAN (CONT'D)
+      Yes! Now the pagination...
+
+Jordan scrolls through the editor. Pages flow seamlessly with gaps between them.
+
+                    JORDAN (CONT'D)
+      Fifty-five lines per page. Automatic 
+      page breaks. Page numbers on the 
+      right...
+
+Jordan implements the page numbering logic. The numbers appear in the top right corner, starting from page two (after the title page).
+
+Jordan leans back, satisfied.
+
+                    JORDAN (CONT'D)
+      Now for the hard part. The text 
+      input.
+
+CUT TO:
+
+INT. JORDAN'S APARTMENT - LATER THAT NIGHT
+
+The clock shows 3:47 AM. Jordan's eyes are bloodshot but focused.
+
+Jordan stares at the screen, where text jumps around erratically as they type.
+
+                    JORDAN
+      No, no, no. The cursor can't jump 
+      like that. It has to stay stable. 
+      Professional editors don't have 
+      bouncing text.
+
+Jordan opens Fountain.io documentation, studies the syntax rules.
+
+                    JORDAN (CONT'D)
+      Scene headings start with INT or 
+      EXT. Character names are all caps. 
+      Dialogue is indented...
+
+Jordan implements the Fountain parser. The editor now automatically detects element types.
+
+Jordan tests the Tab key. The text cycles through Scene Heading, Action, Character, Dialogue, Parenthetical, Transition.
+
+                    JORDAN (CONT'D)
+      Tab to cycle elements. Enter to 
+      advance to the next logical element. 
+      Scene heading goes to action. 
+      Character goes to dialogue. Dialogue 
+      goes back to action...
+
+Jordan tests it. It works perfectly.
+
+                    JORDAN (CONT'D)
+          (relieved)
+      Finally. Text input that doesn't 
+      make me want to throw my computer 
+      out the window.
+
+Jordan saves the code, commits to git.
+
+FADE TO:
+
+INT. COFFEE SHOP - DAY (WEEKS LATER)
+
+The same coffee shop, but Jordan looks different: more confident, well-rested, wearing a ClawScreenwriter t-shirt they had made.
+
+Jordan sits across from MIRA (30s, professional, carrying a leather portfolio). Mira opens the portfolio, revealing printed screenplay pages.
+
+                    MIRA
+      I've been using Final Draft for 
+      fifteen years. I'm not easily 
+      impressed.
+
+Jordan slides their laptop across the table. The screen shows ClawScreenwriter with a beautiful screenplay loaded.
+
+                    JORDAN
+      Try it. Write something.
+
+Mira hesitates, then types. A scene heading appears. Mira hits Enter. The cursor moves to action lines. Mira types dialogue. The formatting is automatic.
+
+Mira's eyes widen.
+
+                    MIRA
+      The pagination... it's perfect. Real 
+      screenplay pages. And the title page 
+      is separate?
+
+                    JORDAN
+      Always. Script content starts on 
+      page two. Just like the pros.
+
+Mira continues typing, testing different elements. Parentheticals indent correctly. Transitions align right.
+
+                    MIRA
+          (impressed)
+      And you built this yourself?
+
+                    JORDAN
+      Well, I had some help. The OpenClaw 
+      framework. Modern web tech. But yeah, 
+      mostly me. Lots of late nights.
+
+Mira exports the script to PDF. The export looks professional, industry-standard formatting.
+
+                    MIRA
+      The export is clean. No weird 
+      formatting issues. My agent could 
+      submit this tomorrow.
+
+Jordan smiles.
+
+                    JORDAN
+      That's the goal. Professional tools 
+      for professional writers. Without 
+      the professional price tag.
+
+Mira closes the laptop, slides it back.
+
+                    MIRA
+      I'm in. When can I start using this 
+      for my next project?
+
+                    JORDAN
+      It's live now. ClawScreenwriter.app.
+
+Mira makes a note in their phone.
+
+                    MIRA
+      You know what the best part is?
+
+                    JORDAN
+      The automatic formatting?
+
+                    MIRA
+      No. The fact that it doesn't look 
+      like it was designed in 1998. Finally, 
+      a screenplay app that understands 
+      aesthetics matter.
+
+Jordan beams.
+
+                    JORDAN
+      That was the whole point. Writers 
+      spend hours staring at their screens. 
+      It should be beautiful.
+
+FADE TO:
+
+EXT. CITY SKYLINE - SUNSET
+
+The Seattle skyline glows orange. We see the coffee shop from outside, Jordan and Mira visible through the window, talking animatedly.
+
+SUPER: "ClawScreenwriter is now used by writers in over 40 countries"
+
+FADE OUT.
+
+THE END

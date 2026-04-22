@@ -190,7 +190,6 @@ export default function FountainEditor({
   scriptTitle = '',
   authorName = '',
   writtenBy = 'Written by',
-  placeholder 
 }: FountainEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -518,7 +517,6 @@ export default function FountainEditor({
           onFocus={handleFocus}
           onBlur={handleBlur}
           className="editor-textarea"
-          placeholder={placeholder}
           spellCheck={false}
           autoComplete="off"
           autoCorrect="off"
