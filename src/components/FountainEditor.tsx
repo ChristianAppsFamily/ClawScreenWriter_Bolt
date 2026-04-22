@@ -15,15 +15,9 @@ const SCENE_PREFIXES = ['INT.', 'EXT.', 'INT./EXT.', 'EXT./INT.', 'I/E.', 'E/I.'
 const TRANSITION_SUFFIXES = ['TO:', 'IN:', 'OUT:'];
 const ELEMENT_CYCLE: ElementType[] = ['scene', 'action', 'character', 'dialogue', 'parenthetical', 'transition'];
 
-// Standard screenplay page dimensions
-const PAGE_HEIGHT_PX = 1056; // 11 inches at 96 DPI
-const PAGE_MARGIN_TOP_PX = 96; // 1 inch
-const PAGE_MARGIN_BOTTOM_PX = 96; // 1 inch
-const CONTENT_HEIGHT_PX = PAGE_HEIGHT_PX - PAGE_MARGIN_TOP_PX - PAGE_MARGIN_BOTTOM_PX;
-
 // Line height for 12pt Courier
 const LINE_HEIGHT_PX = 16;
-const LINES_PER_PAGE = 55; // Hardcoded to exactly 55 lines per page as required
+const LINES_PER_PAGE = 55;
 
 function detectElementType(line: string, prevType?: ElementType): ElementType {
   const trimmed = line.trim();
@@ -75,39 +69,25 @@ function getElementLabel(type: ElementType): string {
 
 function getElementMargins(type: ElementType): { left: number; right: number } {
   switch (type) {
-    case 'scene':
-      return { left: 0, right: 0 };
-    case 'action':
-      return { left: 0, right: 0 };
-    case 'character':
-      return { left: 180, right: 0 };
-    case 'dialogue':
-      return { left: 100, right: 100 };
-    case 'parenthetical':
-      return { left: 140, right: 140 };
-    case 'transition':
-      return { left: 0, right: 0 };
-    default:
-      return { left: 0, right: 0 };
+    case 'scene': return { left: 0, right: 0 };
+    case 'action': return { left: 0, right: 0 };
+    case 'character': return { left: 180, right: 0 };
+    case 'dialogue': return { left: 100, right: 100 };
+    case 'parenthetical': return { left: 140, right: 140 };
+    case 'transition': return { left: 0, right: 0 };
+    default: return { left: 0, right: 0 };
   }
 }
 
 function getNextElementType(currentType: ElementType): ElementType {
   switch (currentType) {
-    case 'scene':
-      return 'action';
-    case 'action':
-      return 'action';
-    case 'character':
-      return 'dialogue';
-    case 'dialogue':
-      return 'action';
-    case 'parenthetical':
-      return 'dialogue';
-    case 'transition':
-      return 'scene';
-    default:
-      return 'action';
+    case 'scene': return 'action';
+    case 'action': return 'action';
+    case 'character': return 'dialogue';
+    case 'dialogue': return 'action';
+    case 'parenthetical': return 'dialogue';
+    case 'transition': return 'scene';
+    default: return 'action';
   }
 }
 
@@ -129,13 +109,12 @@ interface Page {
   isTitlePage: boolean;
 }
 
-// Wrap text into lines based on element type margins
 function wrapText(text: string, type: ElementType): string[] {
   const trimmed = text.trim();
   if (!trimmed) return [''];
   
   const margins = getElementMargins(type);
-  const availableWidth = 576 - margins.left - margins.right; // 6 inches content width
+  const availableWidth = 576 - margins.left - margins.right;
   const charWidth = 7.2;
   const maxChars = Math.floor(availableWidth / charWidth);
   
@@ -159,19 +138,15 @@ function wrapText(text: string, type: ElementType): string[] {
   return lines.length > 0 ? lines : [''];
 }
 
-// Calculate the total lines needed for a dialogue block starting at the given index
-// A dialogue block includes: character name + parenthetical(s) + dialogue line(s)
 function calculateDialogueBlockLines(parsedLines: ParsedLine[], startIndex: number): { lines: number; endIndex: number } {
   let totalLines = 0;
   let i = startIndex;
   
-  // Character line
   if (i < parsedLines.length && parsedLines[i].type === 'character') {
     const wrapped = wrapText(parsedLines[i].text, 'character');
     totalLines += wrapped.length;
     i++;
     
-    // Parenthetical(s) and dialogue line(s)
     while (i < parsedLines.length) {
       const type = parsedLines[i].type;
       if (type === 'parenthetical' || type === 'dialogue') {
@@ -187,43 +162,8 @@ function calculateDialogueBlockLines(parsedLines: ParsedLine[], startIndex: numb
   return { lines: totalLines, endIndex: i - 1 };
 }
 
-// Calculate the total lines needed for a scene heading block
-// Includes the scene heading and any following action lines until next scene/character/transition
-function calculateSceneBlockLines(parsedLines: ParsedLine[], startIndex: number): { lines: number; endIndex: number } {
-  let totalLines = 0;
-  let i = startIndex;
-  
-  if (i < parsedLines.length && parsedLines[i].type === 'scene') {
-    const wrapped = wrapText(parsedLines[i].text, 'scene');
-    totalLines += wrapped.length;
-    i++;
-    
-    // Include following action lines (but stop at next scene, character, or transition)
-    while (i < parsedLines.length) {
-      const type = parsedLines[i].type;
-      if (type === 'action') {
-        const wrapped = wrapText(parsedLines[i].text, type);
-        totalLines += wrapped.length;
-        i++;
-      } else {
-        break;
-      }
-    }
-  }
-  
-  return { lines: totalLines, endIndex: i - 1 };
-}
-
 // Title page component
-function TitlePage({ 
-  title, 
-  writtenBy, 
-  authorName 
-}: { 
-  title: string; 
-  writtenBy?: string; 
-  authorName?: string;
-}) {
+function TitlePage({ title, writtenBy, authorName }: { title: string; writtenBy?: string; authorName?: string }) {
   return (
     <div className="script-page title-page">
       <div className="title-page-content">
@@ -251,10 +191,12 @@ export default function FountainEditor({
   const [currentElement, setCurrentElement] = useState<ElementType>('action');
   const [currentLineIndex, setCurrentLineIndex] = useState(0);
   const [forcedElement, setForcedElement] = useState<ElementType | null>(null);
-  const [cursorPage, setCursorPage] = useState(2);
   const [isFocused, setIsFocused] = useState(false);
+  
+  // Track scroll position to restore after render
+  const scrollPosRef = useRef(0);
 
-  // Parse all lines with their types
+  // Parse all lines with their types - memoized to avoid recalculation
   const parsedLines = useMemo((): ParsedLine[] => {
     const lines = value.split('\n');
     const result: ParsedLine[] = [];
@@ -272,8 +214,6 @@ export default function FountainEditor({
   // Calculate pages based on line count with proper page break logic
   const pages = useMemo((): Page[] => {
     const result: Page[] = [];
-    
-    // Script content pages
     let currentPageLines: PageLine[] = [];
     let currentLineCount = 0;
     let pageNumber = 2;
@@ -284,12 +224,10 @@ export default function FountainEditor({
       const wrappedLines = wrapText(line.text, line.type);
       const lineHeight = wrappedLines.length;
       
-      // DIALOGUE BLOCK KEEPING: If this is a character line, calculate the entire dialogue block
+      // DIALOGUE BLOCK KEEPING
       if (line.type === 'character') {
         const blockInfo = calculateDialogueBlockLines(parsedLines, i);
         
-        // If the entire block won't fit on current page and we're not at the start of a page,
-        // push it to the next page
         if (currentLineCount > 0 && currentLineCount + blockInfo.lines > LINES_PER_PAGE) {
           result.push({
             lines: currentPageLines,
@@ -301,7 +239,6 @@ export default function FountainEditor({
           pageNumber++;
         }
         
-        // Add the entire dialogue block to the current page
         for (let j = i; j <= blockInfo.endIndex; j++) {
           const blockLine = parsedLines[j];
           const blockWrapped = wrapText(blockLine.text, blockLine.type);
@@ -319,10 +256,8 @@ export default function FountainEditor({
         continue;
       }
       
-      // SCENE HEADING WIDOW/ORPHAN PROTECTION: If this is a scene heading,
-      // make sure it doesn't appear as the last line on a page
+      // SCENE HEADING PROTECTION
       if (line.type === 'scene') {
-        // If scene heading would be the last line on the page, push it to next page
         if (currentLineCount > 0 && currentLineCount + lineHeight >= LINES_PER_PAGE) {
           result.push({
             lines: currentPageLines,
@@ -335,7 +270,7 @@ export default function FountainEditor({
         }
       }
       
-      // Check if we need a new page for regular lines
+      // Regular page break
       if (currentLineCount + lineHeight > LINES_PER_PAGE && currentPageLines.length > 0) {
         result.push({
           lines: currentPageLines,
@@ -347,7 +282,6 @@ export default function FountainEditor({
         pageNumber++;
       }
 
-      // Add the wrapped lines
       for (let j = 0; j < wrappedLines.length; j++) {
         currentPageLines.push({
           text: wrappedLines[j],
@@ -359,7 +293,6 @@ export default function FountainEditor({
       i++;
     }
 
-    // Add the last page if it has content
     if (currentPageLines.length > 0) {
       result.push({
         lines: currentPageLines,
@@ -371,8 +304,8 @@ export default function FountainEditor({
     return result;
   }, [parsedLines]);
 
-  // Update current element based on cursor position
-  const updateCurrentLine = useCallback((shouldUpdatePage = true) => {
+  // Update toolbar indicator only - NO scroll, NO state that causes re-render
+  const updateCurrentLine = useCallback(() => {
     if (!textareaRef.current) return;
 
     const cursorPos = textareaRef.current.selectionStart;
@@ -386,34 +319,29 @@ export default function FountainEditor({
     } else if (parsedLines[lineIndex]) {
       setCurrentElement(parsedLines[lineIndex].type);
     }
+  }, [value, parsedLines, forcedElement]);
 
-    // Calculate which page the cursor is on
-    if (shouldUpdatePage) {
-      let linesCounted = 0;
-      for (let i = 0; i < pages.length; i++) {
-        const page = pages[i];
-        const pageLines = page.lines.filter((l, idx, arr) => 
-          idx === 0 || l.lineIndex !== arr[idx - 1].lineIndex
-        ).length;
-        
-        if (lineIndex < linesCounted + pageLines) {
-          setCursorPage(page.pageNumber);
-          break;
-        }
-        linesCounted += pageLines;
-      }
+  // Save scroll position before value changes
+  const saveScrollPosition = useCallback(() => {
+    if (editorRef.current) {
+      scrollPosRef.current = editorRef.current.scrollTop;
     }
-  }, [value, parsedLines, forcedElement, pages]);
+  }, []);
 
-  // Only update current line on value change, NOT page scroll
-  useEffect(() => {
-    updateCurrentLine(false);
-  }, [value, updateCurrentLine]);
+  // Restore scroll position after render
+  const restoreScrollPosition = useCallback(() => {
+    if (editorRef.current && scrollPosRef.current > 0) {
+      editorRef.current.scrollTop = scrollPosRef.current;
+    }
+  }, []);
 
-  // Handle keyboard input
+  // Handle keyboard input - ONLY intercept Tab and Enter
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     const textarea = textareaRef.current;
     if (!textarea) return;
+
+    // Save scroll position before any changes
+    saveScrollPosition();
 
     const cursorPos = textarea.selectionStart;
     const selectionEnd = textarea.selectionEnd;
@@ -445,7 +373,6 @@ export default function FountainEditor({
         newLineContent = newLineContent.toUpperCase();
       }
 
-      // Calculate spaces for indentation (10px per space)
       const paddingChars = Math.floor(margins.left / 10);
       const padding = ' '.repeat(paddingChars);
       const paddedContent = padding + newLineContent.trimStart();
@@ -456,13 +383,13 @@ export default function FountainEditor({
 
       onChange(newValue);
 
-      // Restore cursor position without jumping
       requestAnimationFrame(() => {
         if (textarea) {
           const newPos = currentLineStart + paddedContent.length;
           textarea.selectionStart = newPos;
           textarea.selectionEnd = newPos;
           textarea.focus();
+          restoreScrollPosition();
         }
       });
 
@@ -485,26 +412,31 @@ export default function FountainEditor({
       const newValue = value.substring(0, cursorPos) + '\n' + padding + textAfterCursor;
       onChange(newValue);
 
-      // Restore cursor position without jumping
       requestAnimationFrame(() => {
         if (textarea) {
           const newPos = cursorPos + 1 + padding.length;
           textarea.selectionStart = newPos;
           textarea.selectionEnd = newPos;
           textarea.focus();
+          restoreScrollPosition();
         }
       });
 
       return;
     }
 
-    // Don't clear forced element on normal typing - only Tab and Enter should change formatting
-    // This prevents auto-detection from changing formatting while typing
+    // Allow ALL other keys to pass through normally (including Backspace, Delete, arrows)
+    // Don't prevent default, don't intercept
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    // Save scroll position before updating value
+    saveScrollPosition();
     onChange(e.target.value);
-    // Don't clear forced element on change - let Tab/Enter control formatting
+    // Restore scroll after React re-renders
+    requestAnimationFrame(() => {
+      restoreScrollPosition();
+    });
   };
 
   const handleClick = () => {
@@ -524,11 +456,10 @@ export default function FountainEditor({
   };
 
   const handleLineClick = (lineIndex: number) => {
-    // Calculate cursor position for the clicked line
     const lines = value.split('\n');
     let charPos = 0;
     for (let i = 0; i < lineIndex && i < lines.length; i++) {
-      charPos += lines[i].length + 1; // +1 for newline
+      charPos += lines[i].length + 1;
     }
     
     if (textareaRef.current) {
@@ -539,30 +470,6 @@ export default function FountainEditor({
       setIsFocused(true);
     }
   };
-
-  // Scroll to cursor page only when explicitly navigating (Tab/Enter), not on typing
-  // This prevents the snap-to-title-page bug
-  const scrollToPage = useCallback((pageNum: number) => {
-    if (editorRef.current) {
-      const pageElement = editorRef.current.querySelector(`[data-page-number="${pageNum}"]`);
-      if (pageElement) {
-        const container = editorRef.current;
-        const pageRect = pageElement.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
-        
-        // Only scroll if page is not fully visible
-        if (pageRect.bottom > containerRect.bottom || pageRect.top < containerRect.top) {
-          pageElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        }
-      }
-    }
-  }, []);
-
-  // Only scroll on explicit navigation, not cursor page changes from typing
-  useEffect(() => {
-    // This effect is now only triggered by explicit user actions (Tab/Enter)
-    // The cursorPage state update from typing won't trigger scroll
-  }, [cursorPage, scrollToPage]);
 
   // Get display title
   const displayTitle = scriptTitle || 'UNTITLED';
@@ -652,7 +559,7 @@ export default function FountainEditor({
           {pages.map((page) => (
             <div 
               key={page.pageNumber} 
-              className={`script-page ${page.pageNumber === cursorPage && isFocused ? 'active-page' : ''}`}
+              className="script-page"
               data-page-number={page.pageNumber}
             >
               <div className="page-number">{page.pageNumber - 1}</div>

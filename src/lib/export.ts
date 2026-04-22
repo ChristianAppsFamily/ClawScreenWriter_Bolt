@@ -1,12 +1,10 @@
-import { jsPDF } from 'jspdf';
 import { Script, ScriptDraft } from './supabase';
 
 export type ExportFormat = 'pdf' | 'fountain' | 'fdx' | 'txt';
 
-export interface ExportOptions {
+interface ExportOptions {
   script: Script;
   drafts: ScriptDraft[];
-  includePageNumbers?: boolean;
 }
 
 const SCENE_PREFIXES = ['INT.', 'EXT.', 'INT./EXT.', 'EXT./INT.', 'I/E.', 'E/I.'];
@@ -238,167 +236,174 @@ ${paragraphs.join('\n')}
   downloadFile(fdxContent, `${script.title}.fdx`, 'application/xml');
 }
 
-// PDF constants for US Letter
-const PAGE_WIDTH = 8.5 * 72; // 612 points
-const PAGE_HEIGHT = 11 * 72; // 792 points
-const MARGIN_LEFT = 1.5 * 72; // 108 points
-const MARGIN_RIGHT = 1 * 72; // 72 points
-const MARGIN_TOP = 1 * 72; // 72 points
-const MARGIN_BOTTOM = 1 * 72; // 72 points
-const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_LEFT - MARGIN_RIGHT; // 432 points
-const CONTENT_HEIGHT = PAGE_HEIGHT - MARGIN_TOP - MARGIN_BOTTOM; // 648 points
-const LINE_HEIGHT = 12; // 12pt single spaced
-const LINES_PER_PAGE = Math.floor(CONTENT_HEIGHT / LINE_HEIGHT); // 54 lines
-const CHAR_WIDTH = 7.2; // Approximate width of Courier 12pt character in points
-const CHARS_PER_LINE = Math.floor(CONTENT_WIDTH / CHAR_WIDTH); // 60 chars
+export function exportPdf({ script, drafts }: ExportOptions) {
+  const draftContent = getActiveDraftContent(drafts);
+  const lines = draftContent.split('\n');
 
-function wrapText(text: string, maxChars: number): string[] {
-  if (text.length <= maxChars) return [text];
-  
-  const words = text.split(' ');
-  const lines: string[] = [];
-  let currentLine = '';
-  
-  for (const word of words) {
-    if ((currentLine + ' ' + word).trim().length <= maxChars) {
-      currentLine = currentLine ? currentLine + ' ' + word : word;
-    } else {
-      if (currentLine) lines.push(currentLine);
-      currentLine = word;
-    }
-  }
-  if (currentLine) lines.push(currentLine);
-  
-  return lines;
-}
-
-interface PdfLine {
-  text: string;
-  type: ElementType;
-  x: number;
-  y: number;
-}
-
-function buildPdfLines(lines: string[]): PdfLine[] {
-  const pdfLines: PdfLine[] = [];
   let prevType: ElementType | undefined;
-  let currentY = MARGIN_TOP;
-  let pageLineCount = 0;
+  const parsedLines: { text: string; type: ElementType }[] = [];
 
   for (const line of lines) {
     const type = detectElementType(line, prevType);
-    const trimmed = line.trim();
+    parsedLines.push({ text: line.trim(), type });
     prevType = type;
-
-    if (!trimmed) {
-      currentY += LINE_HEIGHT;
-      pageLineCount++;
-      continue;
-    }
-
-    let x = MARGIN_LEFT;
-    let maxChars = CHARS_PER_LINE;
-    let text = trimmed;
-
-    switch (type) {
-      case 'scene':
-        text = text.toUpperCase();
-        break;
-      case 'character':
-        text = text.toUpperCase();
-        x = MARGIN_LEFT + 2.5 * 72; // 2.5 inches from left
-        maxChars = Math.floor((CONTENT_WIDTH - 2.5 * 72) / CHAR_WIDTH);
-        break;
-      case 'dialogue':
-        x = MARGIN_LEFT + 1 * 72; // 1 inch from left
-        maxChars = Math.floor((CONTENT_WIDTH - 1 * 72 - 1.5 * 72) / CHAR_WIDTH);
-        break;
-      case 'parenthetical':
-        x = MARGIN_LEFT + 1.5 * 72; // 1.5 inches from left
-        maxChars = Math.floor((CONTENT_WIDTH - 1.5 * 72 - 2 * 72) / CHAR_WIDTH);
-        break;
-      case 'transition':
-        text = text.toUpperCase();
-        x = MARGIN_LEFT + 3 * 72; // Right-aligned, 3 inches from left
-        maxChars = Math.floor((CONTENT_WIDTH - 3 * 72) / CHAR_WIDTH);
-        break;
-    }
-
-    const wrappedLines = wrapText(text, maxChars);
-    for (const wrappedLine of wrappedLines) {
-      pdfLines.push({ text: wrappedLine, type, x, y: currentY });
-      currentY += LINE_HEIGHT;
-      pageLineCount++;
-    }
-
-    // Add spacing after certain elements
-    if (type === 'scene' || type === 'transition') {
-      currentY += LINE_HEIGHT;
-      pageLineCount++;
-    }
   }
 
-  return pdfLines;
-}
-
-export function exportPdf({ script, drafts, includePageNumbers = false }: ExportOptions) {
-  const doc = new jsPDF({
-    unit: 'pt',
-    format: 'letter',
-    orientation: 'portrait',
-  });
-
-  // Set font to Courier
-  doc.setFont('Courier', 'normal');
-  doc.setFontSize(12);
-
-  // Title Page
-  const titleY = PAGE_HEIGHT / 2 - 50;
-  doc.setFontSize(24);
-  doc.text(script.title.toUpperCase(), PAGE_WIDTH / 2, titleY, { align: 'center' });
-  
-  doc.setFontSize(12);
-  if (script.written_by) {
-    doc.text(script.written_by, PAGE_WIDTH / 2, titleY + 36, { align: 'center' });
-  }
-  if (script.author_name) {
-    doc.text(script.author_name, PAGE_WIDTH / 2, titleY + 60, { align: 'center' });
-  }
-  if (script.contact_info) {
-    doc.text(script.contact_info, MARGIN_LEFT, PAGE_HEIGHT - MARGIN_BOTTOM - 24);
-  }
-  if (script.draft_date) {
-    doc.text(`Draft Date: ${script.draft_date}`, MARGIN_LEFT, PAGE_HEIGHT - MARGIN_BOTTOM - 12);
+  const printWindow = window.open('', '_blank');
+  if (!printWindow) {
+    alert('Please allow popups for this site to export PDF');
+    return;
   }
 
-  // Script Content
-  const draftContent = getActiveDraftContent(drafts);
-  const lines = draftContent.split('\n');
-  const pdfLines = buildPdfLines(lines);
+  const htmlLines = parsedLines.map(({ text, type }) => {
+    if (!text) return '<p class="empty">&nbsp;</p>';
 
-  let currentPage = 1;
-  let lineCount = 0;
+    let className = type;
+    let displayText = text;
 
-  for (const pdfLine of pdfLines) {
-    // Check if we need a new page
-    if (lineCount >= LINES_PER_PAGE) {
-      doc.addPage();
-      currentPage++;
-      lineCount = 0;
+    if (type === 'scene' || type === 'character' || type === 'transition') {
+      displayText = text.toUpperCase();
     }
 
-    // Add page number (starting from page 2, top right)
-    if (includePageNumbers && currentPage >= 2 && lineCount === 0) {
-      doc.text(String(currentPage), PAGE_WIDTH - MARGIN_RIGHT, MARGIN_TOP - 12, { align: 'right' });
+    return `<p class="${className}">${escapeHtml(displayText)}</p>`;
+  }).join('\n');
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>${escapeHtml(script.title)}</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Courier+Prime&display=swap');
+
+    @page {
+      size: letter;
+      margin: 1in;
     }
 
-    // Draw the line
-    doc.text(pdfLine.text, pdfLine.x, pdfLine.y);
-    lineCount++;
-  }
+    body {
+      font-family: 'Courier Prime', 'Courier New', monospace;
+      font-size: 12pt;
+      line-height: 1;
+      margin: 0;
+      padding: 0;
+    }
 
-  // Save the PDF
-  doc.save(`${script.title}.pdf`);
+    .title-page {
+      page-break-after: always;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+    }
+
+    .title-page h1 {
+      font-size: 24pt;
+      font-weight: bold;
+      margin-bottom: 24pt;
+      text-transform: uppercase;
+    }
+
+    .title-page .written-by {
+      margin-bottom: 6pt;
+    }
+
+    .title-page .author {
+      margin-bottom: 48pt;
+    }
+
+    .title-page .contact {
+      position: absolute;
+      bottom: 1in;
+      left: 1in;
+      text-align: left;
+      font-size: 12pt;
+    }
+
+    .script-content {
+      padding: 0;
+    }
+
+    p {
+      margin: 0;
+      padding: 0;
+    }
+
+    p.empty {
+      height: 12pt;
+    }
+
+    p.scene {
+      margin-top: 24pt;
+      margin-bottom: 12pt;
+      font-weight: bold;
+      text-transform: uppercase;
+    }
+
+    p.action {
+      margin-bottom: 12pt;
+    }
+
+    p.character {
+      margin-left: 2.5in;
+      margin-top: 12pt;
+      text-transform: uppercase;
+    }
+
+    p.dialogue {
+      margin-left: 1in;
+      margin-right: 1.5in;
+      margin-bottom: 12pt;
+    }
+
+    p.parenthetical {
+      margin-left: 1.5in;
+      margin-right: 2in;
+      font-style: italic;
+    }
+
+    p.transition {
+      text-align: right;
+      margin-top: 12pt;
+      margin-bottom: 12pt;
+      text-transform: uppercase;
+    }
+
+    @media print {
+      body {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="title-page">
+    <h1>${escapeHtml(script.title)}</h1>
+    ${script.written_by ? `<p class="written-by">${escapeHtml(script.written_by)}</p>` : ''}
+    ${script.author_name ? `<p class="author">${escapeHtml(script.author_name)}</p>` : ''}
+    <div class="contact">
+      ${script.contact_info ? `<p>${escapeHtml(script.contact_info).replace(/\n/g, '<br>')}</p>` : ''}
+      ${script.draft_date ? `<p>Draft Date: ${escapeHtml(script.draft_date)}</p>` : ''}
+    </div>
+  </div>
+  <div class="script-content">
+    ${htmlLines}
+  </div>
+  <script>
+    window.onload = function() {
+      setTimeout(function() {
+        window.print();
+      }, 500);
+    };
+  </script>
+</body>
+</html>`;
+
+  printWindow.document.write(html);
+  printWindow.document.close();
 }
 
 function escapeHtml(str: string): string {

@@ -175,7 +175,7 @@ body {
   overflow: hidden;
   color: transparent;
   background: transparent;
-  caret-color: #3b82f6;
+  caret-color: white;
 }
 
 .editor-textarea::selection {

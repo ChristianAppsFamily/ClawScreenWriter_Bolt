@@ -7,7 +7,7 @@ import TitlePageForm from './TitlePageForm';
 import StepEditor from './StepEditor';
 import DraftEditor from './DraftEditor';
 import { useScripts, useStorySteps, useScriptDrafts } from '../hooks/useScripts';
-import type { StepType } from '../lib/supabase';
+import { Script, StepType } from '../lib/supabase';
 import { ExportFormat, exportScript } from '../lib/export';
 import { supabase } from '../lib/supabase';
 
@@ -79,29 +79,6 @@ export default function Dashboard() {
     }
   };
 
-  // Navigate to a script's draft editor, or title page if no drafts exist
-  const navigateToScript = async (scriptId: string) => {
-    // Check if we already have drafts loaded for this script
-    const scriptDrafts = drafts.filter(d => d.script_id === scriptId);
-    
-    if (scriptDrafts.length > 0) {
-      setActiveView({ type: 'draft', scriptId, draftId: scriptDrafts[0].id });
-    } else {
-      // Fetch drafts for this script from the database
-      const { data: fetchedDrafts } = await supabase
-        .from('script_drafts')
-        .select('*')
-        .eq('script_id', scriptId)
-        .order('order_index', { ascending: true });
-        
-      if (fetchedDrafts && fetchedDrafts.length > 0) {
-        setActiveView({ type: 'draft', scriptId, draftId: fetchedDrafts[0].id });
-      } else {
-        setActiveView({ type: 'title-page', scriptId });
-      }
-    }
-  };
-
   const handleDeleteScript = async (id: string) => {
     const confirmed = window.confirm('Are you sure you want to delete this script?');
     if (confirmed) {
@@ -147,23 +124,17 @@ export default function Dashboard() {
   };
 
   const createDraftForScript = async (scriptId: string) => {
-    const { data, error } = await supabase
+    const { data } = await supabase
       .from('script_drafts')
-      .insert({ script_id: scriptId, title: 'Draft 1', order_index: 0, content: '' })
+      .insert({ script_id: scriptId, title: 'Draft 1', order_index: 0 })
       .select()
       .single();
-    if (error) {
-      console.error('Error creating draft:', error);
-      return null;
-    }
     return data;
   };
 
-  const [includePageNumbers, setIncludePageNumbers] = useState(false);
-
   const handleExport = (format: ExportFormat) => {
     if (!activeScript) return;
-    exportScript(format, { script: activeScript, drafts, includePageNumbers });
+    exportScript(format, { script: activeScript, drafts });
   };
 
   const formatDate = (dateString: string) => {
@@ -212,12 +183,11 @@ export default function Dashboard() {
 
     if (activeView.type === 'draft') {
       const draft = drafts.find((d) => d.id === activeView.draftId);
-      if (draft && activeScript) {
+      if (draft) {
         return (
           <DraftEditor
             key={draft.id}
             draft={draft}
-            script={activeScript}
             onUpdate={(updates) => updateDraft(draft.id, updates)}
             onDelete={() => handleDeleteDraft(draft.id)}
           />
@@ -256,7 +226,7 @@ export default function Dashboard() {
                 {scripts.slice(0, 5).map((script) => (
                   <button
                     key={script.id}
-                    onClick={() => navigateToScript(script.id)}
+                    onClick={() => setActiveView({ type: 'title-page', scriptId: script.id })}
                     className="w-full flex items-center gap-3 p-3 bg-gray-50 dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors text-left"
                   >
                     <FileText className="w-5 h-5 text-gray-400 flex-shrink-0" />
@@ -311,8 +281,6 @@ export default function Dashboard() {
           onClose={() => setShowSettings(false)}
           onExport={handleExport}
           hasActiveScript={!!activeScript}
-          includePageNumbers={includePageNumbers}
-          onTogglePageNumbers={() => setIncludePageNumbers(!includePageNumbers)}
         />
       )}
     </div>
